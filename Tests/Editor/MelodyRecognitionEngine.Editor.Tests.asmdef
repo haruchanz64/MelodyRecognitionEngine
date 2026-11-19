@@ -1,0 +1,28 @@
+{
+    "name": "MelodyRecognitionEngine.Editor.Tests",
+    "rootNamespace": "MelodyRecognitionEngine.Tests",
+    "references": [
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "MelodyRecognitionEngine.Runtime",
+        "MelodyRecognitionEngine.Editor",
+        "Unity.Burst",
+        "Unity.Collections",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

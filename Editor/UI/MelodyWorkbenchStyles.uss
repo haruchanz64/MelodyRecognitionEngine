@@ -1,0 +1,193 @@
+.mre-root {
+    flex-grow: 1;
+    min-width: 0;
+    min-height: 0;
+    padding: 10px;
+    background-color: var(--unity-colors-window-background);
+    color: var(--unity-colors-window-text);
+}
+
+.mre-header {
+    flex-direction: row;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    background-color: var(--unity-colors-app_toolbar-background);
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: var(--unity-colors-window-border);
+}
+
+.mre-title {
+    font-size: 16px;
+    -unity-font-style: bold;
+    color: var(--unity-colors-window-text);
+    white-space: normal;
+}
+
+.mre-subtitle {
+    font-size: 11px;
+    color: var(--unity-colors-default-text);
+    opacity: 0.72;
+    white-space: normal;
+}
+
+.mre-tabs {
+    flex-direction: row;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    margin-bottom: 6px;
+}
+
+.mre-tab-btn {
+    flex-grow: 1;
+    min-width: 115px;
+    height: 28px;
+    margin-right: 4px;
+    margin-bottom: 4px;
+    border-radius: 4px;
+    background-color: var(--unity-colors-button-background);
+    border-width: 1px;
+    border-color: var(--unity-colors-button-border);
+    color: var(--unity-colors-button-text);
+    -unity-font-style: bold;
+}
+
+.mre-tab-btn:hover {
+    background-color: var(--unity-colors-button-background-hover);
+}
+
+.mre-tab-btn--active {
+    background-color: var(--unity-colors-highlight-background);
+    border-color: var(--unity-colors-highlight-background);
+    color: #ffffff;
+}
+
+.mre-card {
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: var(--unity-colors-helpbox-background);
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: var(--unity-colors-helpbox-border);
+    min-width: 0;
+}
+
+.mre-section-title {
+    font-size: 13px;
+    -unity-font-style: bold;
+    color: var(--unity-colors-window-text);
+    white-space: normal;
+    margin-bottom: 6px;
+}
+
+.mre-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    min-width: 0;
+    margin-bottom: 6px;
+}
+
+.mre-row > Button {
+    margin-right: 4px;
+    margin-bottom: 4px;
+}
+
+.mre-tuner-readout {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background-color: var(--unity-colors-input_field-background);
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: var(--unity-colors-input_field-border);
+    margin-bottom: 8px;
+    min-width: 0;
+}
+
+.mre-note-big {
+    font-size: 32px;
+    -unity-font-style: bold;
+    color: var(--unity-colors-link-text);
+    min-width: 84px;
+    margin-right: 8px;
+}
+
+.mre-meter-bg {
+    height: 12px;
+    background-color: var(--unity-colors-slider_groove-background);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+
+.mre-meter-fill {
+    height: 100%;
+    width: 0%;
+    background-color: #2ea043;
+}
+
+.mre-piano-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 6px;
+    margin-bottom: 8px;
+}
+
+.mre-piano-key {
+    min-width: 38px;
+    height: 36px;
+    margin: 2px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: var(--unity-colors-default-border);
+    background-color: #f5f7fa;
+    color: #181b22;
+    -unity-font-style: bold;
+}
+
+.mre-piano-key--sharp {
+    background-color: #2b313d;
+    border-color: var(--unity-colors-default-border);
+    color: #f5f7fa;
+}
+
+.mre-chip-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    min-height: 28px;
+    padding: 4px;
+    background-color: var(--unity-colors-input_field-background);
+    border-width: 1px;
+    border-color: var(--unity-colors-input_field-border);
+    border-radius: 4px;
+}
+
+.mre-chip {
+    padding: 3px 8px;
+    margin: 2px;
+    border-radius: 10px;
+    background-color: var(--unity-colors-highlight-background);
+    color: #ffffff;
+    font-size: 11px;
+    -unity-font-style: bold;
+}
+
+.mre-log-box {
+    min-height: 110px;
+    max-height: 220px;
+    padding: 8px;
+    background-color: var(--unity-colors-input_field-background);
+    border-width: 1px;
+    border-color: var(--unity-colors-input_field-border);
+    border-radius: 4px;
+    color: var(--unity-colors-default-text);
+    font-size: 11px;
+    white-space: normal;
+}

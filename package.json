@@ -1,0 +1,46 @@
+{
+  "name": "com.haruchanz64.melody-recognition-engine",
+  "version": "1.0.0",
+  "displayName": "MelodyRecognitionEngine",
+  "description": "Real-time Burst-compiled humming and acoustic instrument melody recognition engine for Unity 6. Features YIN/MPM pitch tracking, Hum & Instrument DSP profiles, relative-interval & absolute-pitch matching, unlockable song repertoires, Guided/Learn Mode, player-recorded custom songs, an optional uGUI Musical Staff HUD, and a UI Toolkit Melody Workbench.",
+  "unity": "6000.0",
+  "license": "MIT",
+  "keywords": [
+    "audio",
+    "dsp",
+    "pitch-detection",
+    "melody-recognition",
+    "humming",
+    "ocarina",
+    "music",
+    "microphone",
+    "burst",
+    "unity-tool"
+  ],
+  "dependencies": {
+    "com.unity.burst": "1.8.14",
+    "com.unity.collections": "2.4.3",
+    "com.unity.ugui": "2.0.0"
+  },
+  "author": {
+    "name": "haruchanz64",
+    "url": "https://haruchanz64.github.io"
+  },
+  "samples": [
+    {
+      "displayName": "Playable Ocarina Demo",
+      "description": "6-song demo showcasing Hum Mode, Instrument Mode, virtual button fallback, Guided/Learn Mode, custom song recording, and the uGUI Musical Staff HUD.",
+      "path": "Samples~/OcarinaDemo"
+    },
+    {
+      "displayName": "InputSystem Virtual Instrument Adapter",
+      "description": "Maps Unity Input System actions or keyboard keys into DiscreteNoteInputSource for accessible non-microphone play.",
+      "path": "Samples~/InputSystemAdapter"
+    },
+    {
+      "displayName": "CommonEventsEngine Bridge",
+      "description": "Connects recognized melodies to CommonEventsEngine events/switches and adds custom commands to unlock or teach songs.",
+      "path": "Samples~/CommonEventsBridge"
+    }
+  ]
+}
