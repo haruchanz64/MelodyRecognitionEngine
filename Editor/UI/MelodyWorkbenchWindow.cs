@@ -69,7 +69,7 @@ namespace MelodyRecognitionEngine.Editor.UI
         private Slider _simNoiseSlider;
         private Label _simOutputLabel;
 
-        [MenuItem("Tools/MelodyRecognitionEngine/Melody Workbench", false, 10)]
+        [MenuItem("Tools/HaruChanZ64/Audio/MelodyRecognitionEngine/Melody Workbench", false, 120)]
         public static void OpenWindow()
         {
             var window = GetWindow<MelodyWorkbenchWindow>();

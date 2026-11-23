@@ -30,7 +30,7 @@ Players can hum, whistle, play a physical instrument (ocarina, flute, guitar, pi
   - `MelodyRecognitionController` with BGM ducking hooks (`onListeningStateChanged`) and Inspector `UnityEvent`s.
   - Optional uGUI `MusicalStaffHUD` (5-line staff, live pitch needle, scrolling notes, ghosted Learn Mode guide notes, mic level meter, mode buttons).
   - Optional `ProceduralOcarinaSynth` (`OnAudioFilterRead` procedural voices for Ocarina, Flute, HarpPluck, BellChime, and SquareRetro, or pitch-shifted `AudioClip` samples, plus song-match fanfare).
-  - UI Toolkit Melody Workbench (`Tools > MelodyRecognitionEngine > Melody Workbench`) with a Live Mic Tuner, Mic/Piano Song Authoring with octave-shift controls (`C1`–`C7`), and a deterministic Dry-Run Simulator.
+  - UI Toolkit Melody Workbench (`Tools > HaruChanZ64 > Audio > MelodyRecognitionEngine > Melody Workbench`) with a Live Mic Tuner, Mic/Piano Song Authoring with octave-shift controls (`C1`–`C7`), and a deterministic Dry-Run Simulator.
 
 ---
 
@@ -50,7 +50,7 @@ Dependencies (`com.unity.burst`, `com.unity.collections`, `com.unity.ugui`) are 
 ## Quick Start
 
 1. In the Hierarchy, choose `GameObject → MelodyRecognitionEngine → Create Melody Recognition Rig` (creates `MelodyRecognitionController`, `ProceduralOcarinaSynth`, and `MusicalStaffHUD`).
-2. Create songs via `Create → MelodyRecognitionEngine → Song Asset` or open `Tools → MelodyRecognitionEngine → Melody Workbench` to record directly from your microphone or click piano keys.
+2. Create songs via `Create → MelodyRecognitionEngine → Song Asset` or open `Tools → HaruChanZ64 → Audio → MelodyRecognitionEngine → Melody Workbench` to record directly from your microphone or click piano keys.
 3. Group songs into a Song Library (`Create → MelodyRecognitionEngine → Song Library`) and assign it to `MelodyRecognitionController`.
 4. Wire `onSongMatched` (and `onListeningStateChanged` to duck BGM while listening) and press Play.
 
