@@ -14,12 +14,19 @@ namespace MelodyRecognitionEngine.Samples.CommonEventsBridge
     /// </summary>
     public sealed class MelodyCommonEventsBridge : MonoBehaviour
     {
+        /// <summary>
+        /// Maps a recognized song ID to optional CommonEventsEngine switch, signal, and event actions.
+        /// </summary>
         [Serializable]
         public struct SongEventBinding
         {
+            /// <summary>Exact <see cref="SongMatchResult.SongId"/> that activates this binding.</summary>
             public string SongId;
+            /// <summary>Optional CommonEvent asset ID triggered via <c>TriggerEventById</c>.</summary>
             public string CommonEventId;
+            /// <summary>Optional global switch name turned on via <c>SetSwitchOn</c>.</summary>
             public string SwitchToSetOn;
+            /// <summary>Optional signal name broadcast via <c>EmitSignal</c>.</summary>
             public string SignalToEmit;
         }
 
@@ -46,6 +53,9 @@ namespace MelodyRecognitionEngine.Samples.CommonEventsBridge
             }
         }
 
+        /// <summary>
+        /// Dispatches matching <see cref="SongEventBinding"/> entries to the active <see cref="CommonEventDirector"/>.
+        /// </summary>
         private void HandleSongMatched(SongMatchResult match)
         {
             if (eventDirector == null) return;

@@ -10,13 +10,27 @@ namespace MelodyRecognitionEngine.Core
     /// </summary>
     public static class SyntheticAudioGenerator
     {
+        /// <summary>
+        /// Describes a single synthesized note event for <see cref="GenerateMelody"/>.
+        /// </summary>
         public struct NoteSpec
         {
+            /// <summary>Target MIDI pitch (may be fractional to simulate detuning).</summary>
             public float MidiNote;
+            /// <summary>Voiced duration of the note in seconds.</summary>
             public float DurationSeconds;
+            /// <summary>Silent gap appended after this note in seconds.</summary>
             public float GapAfterSeconds;
+            /// <summary>Peak linear amplitude in [0, 1].</summary>
             public float Amplitude;
 
+            /// <summary>
+            /// Creates a note specification with default timing and amplitude suitable for DSP testing.
+            /// </summary>
+            /// <param name="midiNote">MIDI pitch number (integer or fractional).</param>
+            /// <param name="durationSeconds">Voiced note duration in seconds.</param>
+            /// <param name="gapAfterSeconds">Silence duration following the note in seconds.</param>
+            /// <param name="amplitude">Peak linear amplitude in [0, 1].</param>
             public NoteSpec(float midiNote, float durationSeconds = 0.35f, float gapAfterSeconds = 0.04f, float amplitude = 0.55f)
             {
                 MidiNote = midiNote;
@@ -26,18 +40,31 @@ namespace MelodyRecognitionEngine.Core
             }
         }
 
+        /// <summary>
+        /// Acoustic synthesis parameters controlling vibrato, harmonic overtones, noise floor, and envelope ramps.
+        /// </summary>
         public struct SynthStyle
         {
+            /// <summary>Vibrato modulation frequency in Hz.</summary>
             public float VibratoRateHz;
+            /// <summary>Peak vibrato pitch excursion in cents.</summary>
             public float VibratoDepthCents;
+            /// <summary>Relative weight of the 2nd harmonic partial.</summary>
             public float Harmonic2Weight;
+            /// <summary>Relative weight of the 3rd harmonic partial.</summary>
             public float Harmonic3Weight;
+            /// <summary>Relative weight of the 4th harmonic partial.</summary>
             public float Harmonic4Weight;
+            /// <summary>Additive uniform white noise amplitude in [0, 1].</summary>
             public float NoiseAmplitude;
+            /// <summary>Linear fade-in duration in seconds.</summary>
             public float AttackSeconds;
+            /// <summary>Linear fade-out duration in seconds.</summary>
             public float ReleaseSeconds;
+            /// <summary>Deterministic PRNG seed used when generating additive noise.</summary>
             public int RandomSeed;
 
+            /// <summary>Clean single-frequency sine wave preset with no vibrato, overtones, or noise.</summary>
             public static SynthStyle PureSine => new SynthStyle
             {
                 VibratoRateHz = 0f,
@@ -51,6 +78,7 @@ namespace MelodyRecognitionEngine.Core
                 RandomSeed = 1337
             };
 
+            /// <summary>Vocal humming preset with moderate vibrato, soft harmonics, and light room noise.</summary>
             public static SynthStyle HumanHum => new SynthStyle
             {
                 VibratoRateHz = 5.4f,
@@ -64,6 +92,7 @@ namespace MelodyRecognitionEngine.Core
                 RandomSeed = 4242
             };
 
+            /// <summary>Ocarina-like acoustic preset with gentle vibrato and restrained upper partials.</summary>
             public static SynthStyle OcarinaInstrument => new SynthStyle
             {
                 VibratoRateHz = 4.2f,
@@ -77,6 +106,7 @@ namespace MelodyRecognitionEngine.Core
                 RandomSeed = 6464
             };
 
+            /// <summary>Overtone-heavy instrument preset designed to stress-test fundamental vs. 2nd-harmonic octave locking.</summary>
             public static SynthStyle RichHarmonicInstrument => new SynthStyle
             {
                 VibratoRateHz = 3.0f,
@@ -91,6 +121,15 @@ namespace MelodyRecognitionEngine.Core
             };
         }
 
+        /// <summary>
+        /// Synthesizes a single mono PCM tone at <paramref name="frequencyHz"/> using the specified <paramref name="style"/>.
+        /// </summary>
+        /// <param name="frequencyHz">Fundamental frequency in Hz.</param>
+        /// <param name="durationSeconds">Total clip duration in seconds.</param>
+        /// <param name="sampleRate">Output sample rate in Hz.</param>
+        /// <param name="style">Timbre, vibrato, noise, and envelope parameters.</param>
+        /// <param name="amplitude">Peak linear amplitude in [0, 1].</param>
+        /// <returns>Mono PCM sample buffer clamped to [-1, 1].</returns>
         public static float[] GenerateTone(float frequencyHz, float durationSeconds, int sampleRate, SynthStyle style, float amplitude = 0.55f)
         {
             int count = Mathf.Max(1, Mathf.RoundToInt(durationSeconds * sampleRate));
@@ -132,6 +171,14 @@ namespace MelodyRecognitionEngine.Core
             return buffer;
         }
 
+        /// <summary>
+        /// Generates deterministic uniform white noise for noise-gate and spectral-flatness rejection tests.
+        /// </summary>
+        /// <param name="durationSeconds">Noise clip duration in seconds.</param>
+        /// <param name="sampleRate">Output sample rate in Hz.</param>
+        /// <param name="amplitude">Peak linear noise amplitude in [0, 1].</param>
+        /// <param name="seed">Deterministic PRNG seed.</param>
+        /// <returns>Mono PCM buffer of uniform white noise clamped to [-1, 1].</returns>
         public static float[] GenerateWhiteNoise(float durationSeconds, int sampleRate, float amplitude = 0.1f, int seed = 777)
         {
             int count = Mathf.Max(1, Mathf.RoundToInt(durationSeconds * sampleRate));
@@ -145,6 +192,15 @@ namespace MelodyRecognitionEngine.Core
             return buffer;
         }
 
+        /// <summary>
+        /// Synthesizes a multi-note mono PCM melody with optional leading/trailing silence and continuous background noise.
+        /// </summary>
+        /// <param name="notes">Ordered sequence of notes and inter-note gaps to render.</param>
+        /// <param name="sampleRate">Output sample rate in Hz.</param>
+        /// <param name="style">Timbre, vibrato, noise, and envelope parameters.</param>
+        /// <param name="leadSilenceSeconds">Silence prepended before the first note in seconds.</param>
+        /// <param name="tailSilenceSeconds">Silence appended after the final note in seconds.</param>
+        /// <returns>Mono PCM sample buffer clamped to [-1, 1].</returns>
         public static float[] GenerateMelody(IReadOnlyList<NoteSpec> notes, int sampleRate, SynthStyle style, float leadSilenceSeconds = 0.08f, float tailSilenceSeconds = 0.15f)
         {
             float totalSeconds = leadSilenceSeconds + tailSilenceSeconds;
@@ -203,6 +259,9 @@ namespace MelodyRecognitionEngine.Core
             return output;
         }
 
+        /// <summary>
+        /// Computes a linear trapezoidal attack/release envelope gain in [0, 1] at time <paramref name="t"/>.
+        /// </summary>
         private static float ComputeEnvelope(float t, float duration, float attack, float release)
         {
             float env = 1f;

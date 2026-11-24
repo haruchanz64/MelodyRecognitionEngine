@@ -10,30 +10,48 @@ namespace MelodyRecognitionEngine.DSP
     /// <summary>
     /// Burst-compiled monophonic pitch detection job implementing:
     /// 1) DC offset removal + cascaded 2nd-order Butterworth bandpass filter
-    /// 2) Adaptive RMS noise gating & broadband-noise rejection
+    /// 2) Adaptive RMS noise gating and broadband-noise rejection
     /// 3) YIN Cumulative Mean Normalized Difference (CMND) with parabolic interpolation
     /// 4) Optional 2nd-harmonic octave correction for harmonically rich instruments
     /// </summary>
     [BurstCompile(FloatPrecision.Standard, FloatMode.Fast)]
     public struct PitchDetectionJob : IJob
     {
+        /// <summary>Raw mono PCM analysis window of length <see cref="FrameSize"/>.</summary>
         [ReadOnly] public NativeArray<float> InputSamples;
+        /// <summary>Caller-owned scratch buffer storing DC-removed, bandpass-filtered samples.</summary>
         public NativeArray<float> FilteredSamples;
+        /// <summary>Caller-owned scratch buffer storing YIN CMND values up to <c>FrameSize / 2</c>.</summary>
         public NativeArray<float> CmndBuffer;
+        /// <summary>Single-element output array receiving the analyzed <see cref="PitchFrame"/>.</summary>
         [WriteOnly] public NativeArray<PitchFrame> Output;
 
+        /// <summary>Analysis window size in samples (must be at least 64).</summary>
         public int FrameSize;
+        /// <summary>Input audio sample rate in Hz.</summary>
         public int SampleRate;
+        /// <summary>Lowest fundamental frequency to consider in Hz.</summary>
         public float MinFrequencyHz;
+        /// <summary>Highest fundamental frequency to consider in Hz.</summary>
         public float MaxFrequencyHz;
+        /// <summary>Concert pitch tuning frequency for A4 in Hz.</summary>
         public float ReferenceA4Hz;
+        /// <summary>Minimum bandpass-filtered RMS required for a frame to be treated as voiced.</summary>
         public float EffectiveNoiseGateRms;
+        /// <summary>YIN CMND threshold for choosing the first fundamental valley.</summary>
         public float YinThreshold;
+        /// <summary>Minimum clarity (<c>1 - CMND</c>) required to emit a voiced frame.</summary>
         public float MinClarity;
+        /// <summary>Maximum normalized broadband noise proxy allowed before rejecting the frame.</summary>
         public float MaxSpectralFlatness;
+        /// <summary>Blittable toggle (non-zero enables 2nd-harmonic double-period verification).</summary>
         public byte EnableOctaveCorrection;
+        /// <summary>Stream timestamp in seconds stamped onto the output <see cref="PitchFrame"/>.</summary>
         public double TimestampSeconds;
 
+        /// <summary>
+        /// Runs the complete bandpass, gating, YIN CMND, octave correction, and parabolic interpolation pipeline on <see cref="InputSamples"/>.
+        /// </summary>
         public void Execute()
         {
             var result = new PitchFrame
@@ -237,6 +255,9 @@ namespace MelodyRecognitionEngine.DSP
             Output[0] = result;
         }
 
+        /// <summary>
+        /// Computes 2nd-order Butterworth high-pass biquad coefficients at <paramref name="cutoffHz"/> and filters <paramref name="samples"/> in place.
+        /// </summary>
         private static void ApplyHighPassBiquad(NativeArray<float> samples, int length, int sampleRate, float cutoffHz)
         {
             float w0 = 2f * Mathf.PI * cutoffHz / sampleRate;
@@ -254,6 +275,9 @@ namespace MelodyRecognitionEngine.DSP
             ApplyBiquad(samples, length, b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0);
         }
 
+        /// <summary>
+        /// Computes 2nd-order Butterworth low-pass biquad coefficients at <paramref name="cutoffHz"/> and filters <paramref name="samples"/> in place.
+        /// </summary>
         private static void ApplyLowPassBiquad(NativeArray<float> samples, int length, int sampleRate, float cutoffHz)
         {
             float w0 = 2f * Mathf.PI * cutoffHz / sampleRate;
@@ -271,6 +295,9 @@ namespace MelodyRecognitionEngine.DSP
             ApplyBiquad(samples, length, b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0);
         }
 
+        /// <summary>
+        /// Applies a Direct Form I biquad difference equation in place over the first <paramref name="length"/> samples.
+        /// </summary>
         private static void ApplyBiquad(NativeArray<float> samples, int length, float b0, float b1, float b2, float a1, float a2)
         {
             float x1 = 0f, x2 = 0f;

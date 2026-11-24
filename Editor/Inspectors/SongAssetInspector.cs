@@ -6,12 +6,18 @@ using UnityEngine;
 
 namespace MelodyRecognitionEngine.Editor.Inspectors
 {
+    /// <summary>
+    /// Custom Inspector for <see cref="SongAsset"/> providing inline notation editing, relative semitone preview, and a Melody Workbench shortcut.
+    /// </summary>
     [CustomEditor(typeof(SongAsset))]
     public sealed class SongAssetInspector : UnityEditor.Editor
     {
         private string _quickNotation;
         private SongAsset _lastTarget;
 
+        /// <summary>
+        /// Renders the quick notation bar, relative-interval summary box, and default serialized fields.
+        /// </summary>
         public override void OnInspectorGUI()
         {
             var asset = (SongAsset)target;

@@ -2,6 +2,12 @@
 
 All notable changes to MelodyRecognitionEngine are documented in this file.
 
+## [1.0.1] - 2026-11-24
+
+### Changed
+- Expanded `README.md` into a full developer guide covering requirements, installation, quick start, audio-to-melody architecture, verified C# usage and custom `IAudioCaptureSource` examples, extension contracts/API table, included samples, EditMode test coverage, and troubleshooting.
+- Added XML documentation comments (`/// <summary>`, `<param>`, `<returns>`, `<inheritdoc/>`) across all public types, methods, constructors, properties, events, key struct fields, and non-trivial internal/private helpers in `Runtime/`, `Editor/`, and `Samples~/`.
+
 ## [1.0.0] - 2026-11-19
 
 ### Added

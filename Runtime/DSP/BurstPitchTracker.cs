@@ -35,18 +35,29 @@ namespace MelodyRecognitionEngine.DSP
         private JobHandle _pendingHandle;
         private bool _disposed;
 
+        /// <summary>Active sanitized detection profile driving framing, gating, and YIN thresholds.</summary>
         public DetectionProfileConfig Config => _config;
+        /// <summary>Active audio stream sample rate in Hz.</summary>
         public int SampleRate => _sampleRate;
+        /// <summary>Calibrated ambient room noise floor RMS (clamped to non-negative values).</summary>
         public float AmbientNoiseFloorRms
         {
             get => _ambientNoiseFloorRms;
             set => _ambientNoiseFloorRms = Mathf.Max(0f, value);
         }
 
+        /// <summary>Effective RMS threshold applied by <see cref="PitchDetectionJob"/>, taking the greater of the profile floor and scaled ambient noise.</summary>
         public float EffectiveNoiseGateRms => Mathf.Max(_config.NoiseGateRms, _ambientNoiseFloorRms * _config.NoiseFloorMultiplier);
+        /// <summary>Elapsed stream time in seconds derived from total ingested samples and <see cref="SampleRate"/>.</summary>
         public double CurrentStreamTimeSeconds => _sampleRate > 0 ? (double)_totalSamplesProcessed / _sampleRate : 0.0;
+        /// <summary>True when an asynchronous <see cref="PitchDetectionJob"/> is currently scheduled and not yet completed.</summary>
         public bool HasPendingJob => _hasPendingJob;
 
+        /// <summary>
+        /// Allocates persistent ring and native scratch buffers for pitch analysis at the given sample rate.
+        /// </summary>
+        /// <param name="config">DSP configuration (sanitized before buffer allocation).</param>
+        /// <param name="sampleRate">Audio stream sample rate in Hz (clamped to at least 8000).</param>
         public BurstPitchTracker(DetectionProfileConfig config, int sampleRate = 44100)
         {
             _sampleRate = Mathf.Max(8000, sampleRate);
@@ -54,6 +65,9 @@ namespace MelodyRecognitionEngine.DSP
             AllocateBuffers();
         }
 
+        /// <summary>
+        /// Updates DSP parameters and sample rate, completing any pending job and reallocating native buffers only if <see cref="DetectionProfileConfig.FrameSize"/> changed.
+        /// </summary>
         public void Reconfigure(DetectionProfileConfig config, int sampleRate)
         {
             CompletePendingInternal();
@@ -71,6 +85,9 @@ namespace MelodyRecognitionEngine.DSP
             }
         }
 
+        /// <summary>
+        /// Completes any pending job and clears the PCM ring buffer and sample counters without freeing native memory.
+        /// </summary>
         public void Reset()
         {
             CompletePendingInternal();
@@ -89,6 +106,10 @@ namespace MelodyRecognitionEngine.DSP
         /// Pushes PCM samples into the ring buffer and runs Burst jobs synchronously for every completed hop.
         /// Ideal for EditMode tests, offline AudioClip scanning, and low-latency synchronous pumps.
         /// </summary>
+        /// <param name="samples">Input mono PCM samples in [-1, 1].</param>
+        /// <param name="count">Number of valid samples to ingest from <paramref name="samples"/>.</param>
+        /// <param name="outFrames">Optional list receiving emitted <see cref="PitchFrame"/> results.</param>
+        /// <returns>Number of new frames analyzed synchronously during this call.</returns>
         public int ProcessSamples(float[] samples, int count, List<PitchFrame> outFrames)
         {
             if (_disposed || samples == null || count <= 0)
@@ -134,6 +155,10 @@ namespace MelodyRecognitionEngine.DSP
         /// Pushes PCM samples into the ring buffer and schedules up to one async Burst job for the latest frame
         /// while synchronously draining any earlier hops if multiple hops arrived in one Update().
         /// </summary>
+        /// <param name="samples">Input mono PCM samples in [-1, 1].</param>
+        /// <param name="count">Number of valid samples to ingest from <paramref name="samples"/>.</param>
+        /// <param name="completedFrames">Optional list receiving the previously pending frame and any synchronously drained hops.</param>
+        /// <param name="useAsyncLatestFrame">When true, schedules the final hop via <see cref="IJobExtensions.Schedule{T}"/> instead of running inline.</param>
         public void PushSamplesAsync(float[] samples, int count, List<PitchFrame> completedFrames, bool useAsyncLatestFrame = true)
         {
             if (_disposed || samples == null || count <= 0)
@@ -199,6 +224,8 @@ namespace MelodyRecognitionEngine.DSP
         /// <summary>
         /// Completes any previously scheduled async Burst job and returns its PitchFrame.
         /// </summary>
+        /// <param name="frame">Receives the completed pitch frame, or <c>default</c> when no job was pending.</param>
+        /// <returns>True if a pending job was completed and returned.</returns>
         public bool CompletePendingFrame(out PitchFrame frame)
         {
             if (!_hasPendingJob || _disposed)
@@ -214,8 +241,11 @@ namespace MelodyRecognitionEngine.DSP
         }
 
         /// <summary>
-        /// Directly analyzes a single standalone frame buffer synchronously (length >= FrameSize).
+        /// Directly analyzes a single standalone frame buffer synchronously (zero-padded if shorter than FrameSize).
         /// </summary>
+        /// <param name="frameSamples">Mono PCM frame samples (expected length at least <see cref="DetectionProfileConfig.FrameSize"/>).</param>
+        /// <param name="timestampSeconds">Timestamp assigned to the resulting <see cref="PitchFrame"/>.</param>
+        /// <returns>Analyzed pitch frame.</returns>
         public PitchFrame AnalyzeFrameDirect(float[] frameSamples, double timestampSeconds = 0.0)
         {
             if (_disposed)
@@ -239,6 +269,7 @@ namespace MelodyRecognitionEngine.DSP
             return _jobOutput[0];
         }
 
+        /// <summary>Copies the most recent window from the ring buffer and executes <see cref="PitchDetectionJob"/> synchronously.</summary>
         private PitchFrame RunSingleFrameSync()
         {
             CopyLatestFrameToNative();
@@ -247,6 +278,7 @@ namespace MelodyRecognitionEngine.DSP
             return _jobOutput[0];
         }
 
+        /// <summary>Copies the most recent window from the ring buffer and schedules <see cref="PitchDetectionJob"/> asynchronously.</summary>
         private void ScheduleSingleFrameAsync()
         {
             CopyLatestFrameToNative();
@@ -255,6 +287,7 @@ namespace MelodyRecognitionEngine.DSP
             _hasPendingJob = true;
         }
 
+        /// <summary>Unwraps the latest <see cref="DetectionProfileConfig.FrameSize"/> samples from the circular buffer into <see cref="_jobInput"/>.</summary>
         private void CopyLatestFrameToNative()
         {
             int frameSize = _config.FrameSize;
@@ -265,6 +298,7 @@ namespace MelodyRecognitionEngine.DSP
             }
         }
 
+        /// <summary>Populates a <see cref="PitchDetectionJob"/> struct bound to this tracker's persistent native buffers.</summary>
         private PitchDetectionJob BuildJob(double timestampSeconds)
         {
             return new PitchDetectionJob
@@ -287,6 +321,7 @@ namespace MelodyRecognitionEngine.DSP
             };
         }
 
+        /// <summary>Allocates the managed circular buffer and persistent native arrays sized for the current frame length.</summary>
         private void AllocateBuffers()
         {
             int frameSize = _config.FrameSize;
@@ -302,6 +337,7 @@ namespace MelodyRecognitionEngine.DSP
             _jobOutput = new NativeArray<PitchFrame>(1, Allocator.Persistent);
         }
 
+        /// <summary>Blocks until any in-flight Burst job finishes so native buffers can be safely reused or disposed.</summary>
         private void CompletePendingInternal()
         {
             if (_hasPendingJob)
@@ -311,6 +347,7 @@ namespace MelodyRecognitionEngine.DSP
             }
         }
 
+        /// <summary>Disposes all allocated persistent <see cref="NativeArray{T}"/> scratch buffers.</summary>
         private void DisposeNativeArrays()
         {
             if (_jobInput.IsCreated) _jobInput.Dispose();
@@ -319,6 +356,9 @@ namespace MelodyRecognitionEngine.DSP
             if (_jobOutput.IsCreated) _jobOutput.Dispose();
         }
 
+        /// <summary>
+        /// Completes any pending Burst job and frees all persistent native buffers.
+        /// </summary>
         public void Dispose()
         {
             if (_disposed) return;

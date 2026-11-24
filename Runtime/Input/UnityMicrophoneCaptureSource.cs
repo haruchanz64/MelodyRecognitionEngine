@@ -21,10 +21,19 @@ namespace MelodyRecognitionEngine.Input
         private bool _isCapturing;
         private float[] _interleavedScratch = new float[8192];
 
+        /// <inheritdoc/>
         public int SampleRate => _sampleRate;
+        /// <inheritdoc/>
         public bool IsCapturing => _isCapturing;
+        /// <inheritdoc/>
         public string DeviceName => _activeDevice ?? string.Empty;
 
+        /// <summary>
+        /// Configures a Unity microphone capture source for the requested input device and sample rate.
+        /// </summary>
+        /// <param name="deviceName">Exact microphone device name from <see cref="GetAvailableDevices"/>, or null/empty for the default device.</param>
+        /// <param name="sampleRate">Desired sample rate in Hz (clamped to [16000, 48000] and device capabilities).</param>
+        /// <param name="clipLengthSeconds">Looping ring-buffer clip duration in seconds (clamped to [1, 10]).</param>
         public UnityMicrophoneCaptureSource(string deviceName = null, int sampleRate = 44100, int clipLengthSeconds = 2)
         {
             _requestedDevice = deviceName;
@@ -33,6 +42,9 @@ namespace MelodyRecognitionEngine.Input
             _sampleRate = _requestedSampleRate;
         }
 
+        /// <summary>
+        /// Returns available microphone device names, or an empty array on WebGL builds.
+        /// </summary>
         public static string[] GetAvailableDevices()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -42,6 +54,9 @@ namespace MelodyRecognitionEngine.Input
 #endif
         }
 
+        /// <summary>
+        /// Returns whether the user has authorized microphone access on Android/iOS (always true in Editor and Desktop builds).
+        /// </summary>
         public static bool HasMicrophonePermission()
         {
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -53,6 +68,9 @@ namespace MelodyRecognitionEngine.Input
 #endif
         }
 
+        /// <summary>
+        /// Prompts the operating system microphone permission dialog on Android and iOS builds.
+        /// </summary>
         public static void RequestMicrophonePermission()
         {
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -65,6 +83,10 @@ namespace MelodyRecognitionEngine.Input
 #endif
         }
 
+        /// <summary>
+        /// Starts looping recording on the selected (or first available) microphone device.
+        /// Returns false on WebGL builds or when no microphone device is available.
+        /// </summary>
         public bool StartCapture()
         {
             if (_isCapturing) return true;
@@ -119,6 +141,9 @@ namespace MelodyRecognitionEngine.Input
 #endif
         }
 
+        /// <summary>
+        /// Ends active Unity microphone recording and destroys the temporary looping <see cref="AudioClip"/>.
+        /// </summary>
         public void StopCapture()
         {
             if (!_isCapturing) return;
@@ -139,6 +164,12 @@ namespace MelodyRecognitionEngine.Input
             _lastReadSamplePos = 0;
         }
 
+        /// <summary>
+        /// Reads newly recorded samples since the previous read, downmixing multi-channel microphones to mono.
+        /// </summary>
+        /// <param name="destination">Caller-owned buffer receiving mono PCM samples in [-1, 1].</param>
+        /// <param name="maxSamples">Maximum number of mono samples to copy.</param>
+        /// <returns>Number of mono samples written.</returns>
         public int ReadSamples(float[] destination, int maxSamples)
         {
             if (!_isCapturing || _micClip == null || destination == null || maxSamples <= 0)
@@ -197,6 +228,9 @@ namespace MelodyRecognitionEngine.Input
 #endif
         }
 
+        /// <summary>
+        /// Copies mono samples from the looping microphone clip starting at <see cref="_lastReadSamplePos"/>, handling clip-end wraparound.
+        /// </summary>
         private void ReadMonoWrapped(float[] destination, int count, int clipSamples)
         {
             int firstPart = Mathf.Min(count, clipSamples - _lastReadSamplePos);
@@ -217,6 +251,9 @@ namespace MelodyRecognitionEngine.Input
             Array.Copy(slice, 0, destination, 0, count);
         }
 
+        /// <summary>
+        /// Copies interleaved multi-channel samples from the looping microphone clip into <paramref name="interleaved"/>.
+        /// </summary>
         private void ReadInterleavedWrapped(float[] interleaved, int frameCount, int channels, int clipSamples)
         {
             int totalFloats = frameCount * channels;
@@ -232,6 +269,7 @@ namespace MelodyRecognitionEngine.Input
             }
         }
 
+        /// <inheritdoc/>
         public void Dispose()
         {
             StopCapture();

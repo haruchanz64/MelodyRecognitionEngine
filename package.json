@@ -1,6 +1,6 @@
 {
   "name": "com.haruchanz64.melody-recognition-engine",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "displayName": "MelodyRecognitionEngine",
   "description": "Real-time Burst-compiled humming and acoustic instrument melody recognition engine for Unity 6. Features YIN/MPM pitch tracking, Hum & Instrument DSP profiles, relative-interval & absolute-pitch matching, unlockable song repertoires, Guided/Learn Mode, player-recorded custom songs, an optional uGUI Musical Staff HUD, and a UI Toolkit Melody Workbench.",
   "unity": "6000.0",

@@ -24,15 +24,25 @@ namespace MelodyRecognitionEngine.Matching
         private readonly HashSet<string> _unlockedIds = new HashSet<string>(StringComparer.Ordinal);
         private readonly List<SongDefinition> _activeScratch = new List<SongDefinition>();
 
+        /// <summary>Invoked when a song is added or replaced via <see cref="RegisterSong"/>.</summary>
         public event Action<SongDefinition> OnSongRegistered;
+        /// <summary>Invoked when a locked song transitions to unlocked.</summary>
         public event Action<string> OnSongUnlocked;
+        /// <summary>Invoked when an unlocked song transitions to locked.</summary>
         public event Action<string> OnSongLocked;
+        /// <summary>Invoked when a player-recorded custom song is saved via <see cref="RegisterCustomSong"/>.</summary>
         public event Action<SongDefinition> OnCustomSongSaved;
+        /// <summary>Invoked when a song is removed by ID.</summary>
         public event Action<string> OnSongRemoved;
 
+        /// <summary>All songs currently registered in the repertoire, regardless of lock state.</summary>
         public IReadOnlyList<SongDefinition> AllSongs => _allSongs;
+        /// <summary>Total number of registered songs.</summary>
         public int Count => _allSongs.Count;
 
+        /// <summary>
+        /// Removes all registered songs and clears all unlock flags.
+        /// </summary>
         public void Clear()
         {
             _songsById.Clear();
@@ -40,6 +50,11 @@ namespace MelodyRecognitionEngine.Matching
             _unlockedIds.Clear();
         }
 
+        /// <summary>
+        /// Registers every valid <see cref="SongAsset"/> in <paramref name="library"/>.
+        /// </summary>
+        /// <param name="library">Song library asset to read from (ignored if null).</param>
+        /// <param name="clearExisting">When true, clears existing songs and unlocks before loading.</param>
         public void LoadFromLibrary(SongLibraryAsset library, bool clearExisting = false)
         {
             if (clearExisting) Clear();
@@ -55,6 +70,12 @@ namespace MelodyRecognitionEngine.Matching
             }
         }
 
+        /// <summary>
+        /// Clones and registers (or replaces by <see cref="SongDefinition.SongId"/>) a valid song definition.
+        /// </summary>
+        /// <param name="song">Song definition to register.</param>
+        /// <param name="initialUnlockOverride">Optional override for <see cref="SongDefinition.UnlockedByDefault"/>.</param>
+        /// <returns>True if <paramref name="song"/> was valid and registered.</returns>
         public bool RegisterSong(SongDefinition song, bool? initialUnlockOverride = null)
         {
             if (song == null || !song.IsValid)
@@ -91,6 +112,12 @@ namespace MelodyRecognitionEngine.Matching
             return true;
         }
 
+        /// <summary>
+        /// Marks a song as a player-recorded custom song, registers it, and emits <see cref="OnCustomSongSaved"/>.
+        /// </summary>
+        /// <param name="customSong">Custom song definition to store.</param>
+        /// <param name="unlockImmediately">When true, immediately unlocks the custom song for Free Play recognition.</param>
+        /// <returns>True if <paramref name="customSong"/> was valid and saved.</returns>
         public bool RegisterCustomSong(SongDefinition customSong, bool unlockImmediately = true)
         {
             if (customSong == null || !customSong.IsValid)
@@ -111,6 +138,10 @@ namespace MelodyRecognitionEngine.Matching
             return ok;
         }
 
+        /// <summary>
+        /// Removes the song with the given ID and clears its unlock state.
+        /// </summary>
+        /// <returns>True if a matching song was found and removed.</returns>
         public bool RemoveSong(string songId)
         {
             if (string.IsNullOrWhiteSpace(songId) || !_songsById.Remove(songId))
@@ -131,6 +162,9 @@ namespace MelodyRecognitionEngine.Matching
             return true;
         }
 
+        /// <summary>
+        /// Looks up a registered song by its exact ordinal <paramref name="songId"/>.
+        /// </summary>
         public bool TryGetSong(string songId, out SongDefinition song)
         {
             if (string.IsNullOrWhiteSpace(songId))
@@ -142,17 +176,27 @@ namespace MelodyRecognitionEngine.Matching
             return _songsById.TryGetValue(songId, out song);
         }
 
+        /// <summary>
+        /// Returns true if <paramref name="songId"/> is currently unlocked.
+        /// </summary>
         public bool IsUnlocked(string songId)
         {
             return !string.IsNullOrWhiteSpace(songId) && _unlockedIds.Contains(songId);
         }
 
+        /// <summary>
+        /// Returns true if <paramref name="songId"/> is registered and either unlocked or marked <see cref="SongDefinition.AlwaysDiscoverable"/>.
+        /// </summary>
         public bool IsRecognizable(string songId)
         {
             if (!TryGetSong(songId, out SongDefinition song)) return false;
             return _unlockedIds.Contains(songId) || song.AlwaysDiscoverable;
         }
 
+        /// <summary>
+        /// Unlocks a registered song for Free Play recognition and fires <see cref="OnSongUnlocked"/> if it was previously locked.
+        /// </summary>
+        /// <returns>True if the song existed and transitioned from locked to unlocked.</returns>
         public bool UnlockSong(string songId)
         {
             if (string.IsNullOrWhiteSpace(songId) || !_songsById.ContainsKey(songId))
@@ -169,6 +213,10 @@ namespace MelodyRecognitionEngine.Matching
             return false;
         }
 
+        /// <summary>
+        /// Locks a song and fires <see cref="OnSongLocked"/> if it was previously unlocked.
+        /// </summary>
+        /// <returns>True if the song transitioned from unlocked to locked.</returns>
         public bool LockSong(string songId)
         {
             if (string.IsNullOrWhiteSpace(songId)) return false;
@@ -182,6 +230,9 @@ namespace MelodyRecognitionEngine.Matching
             return false;
         }
 
+        /// <summary>
+        /// Unlocks every song currently registered in the repertoire.
+        /// </summary>
         public void UnlockAll()
         {
             for (int i = 0; i < _allSongs.Count; i++)
@@ -190,6 +241,9 @@ namespace MelodyRecognitionEngine.Matching
             }
         }
 
+        /// <summary>
+        /// Locks every currently unlocked song in the repertoire.
+        /// </summary>
         public void LockAll()
         {
             var ids = new List<string>(_unlockedIds);
@@ -218,6 +272,9 @@ namespace MelodyRecognitionEngine.Matching
             return _activeScratch;
         }
 
+        /// <summary>
+        /// Serializes unlocked song IDs and player-recorded custom songs to a Unity <see cref="JsonUtility"/> JSON string.
+        /// </summary>
         public string ExportStateJson(bool prettyPrint = true)
         {
             var payload = new SavePayload();
@@ -237,6 +294,13 @@ namespace MelodyRecognitionEngine.Matching
             return JsonUtility.ToJson(payload, prettyPrint);
         }
 
+        /// <summary>
+        /// Restores unlocked song IDs and player-recorded custom songs from JSON created by <see cref="ExportStateJson"/>.
+        /// Unknown song IDs in the unlock list are ignored until registered.
+        /// </summary>
+        /// <param name="json">Serialized repertoire state JSON.</param>
+        /// <param name="clearExistingUnlocks">When true, clears current unlocks before applying saved unlock IDs.</param>
+        /// <returns>True if the JSON payload parsed cleanly.</returns>
         public bool ImportStateJson(string json, bool clearExistingUnlocks = true)
         {
             if (string.IsNullOrWhiteSpace(json))

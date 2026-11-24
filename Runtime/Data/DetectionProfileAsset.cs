@@ -61,6 +61,9 @@ namespace MelodyRecognitionEngine.Data
         [Tooltip("If true, overrides relative matching and requires exact concert pitch.")]
         public bool ForceStrictAbsolutePitch;
 
+        /// <summary>
+        /// Creates the built-in vocal humming preset (80 to 680 Hz, wider vibrato hysteresis and 60-cent default tolerance).
+        /// </summary>
         public static DetectionProfileConfig CreateHumPreset() => new DetectionProfileConfig
         {
             MinFrequencyHz = 80f,
@@ -86,6 +89,9 @@ namespace MelodyRecognitionEngine.Data
             ForceStrictAbsolutePitch = false
         };
 
+        /// <summary>
+        /// Creates the built-in acoustic instrument preset (180 to 3600 Hz, stricter clarity threshold and faster note attack).
+        /// </summary>
         public static DetectionProfileConfig CreateInstrumentPreset() => new DetectionProfileConfig
         {
             MinFrequencyHz = 180f,
@@ -111,6 +117,9 @@ namespace MelodyRecognitionEngine.Data
             ForceStrictAbsolutePitch = false
         };
 
+        /// <summary>
+        /// Creates the built-in whistling preset (450 to 3800 Hz, octave correction disabled for pure-tone stability).
+        /// </summary>
         public static DetectionProfileConfig CreateWhistlePreset() => new DetectionProfileConfig
         {
             MinFrequencyHz = 450f,
@@ -136,6 +145,9 @@ namespace MelodyRecognitionEngine.Data
             ForceStrictAbsolutePitch = false
         };
 
+        /// <summary>
+        /// Returns the built-in preset matching <paramref name="kind"/>, falling back to <see cref="CreateHumPreset"/> for <see cref="DetectionPresetKind.Custom"/>.
+        /// </summary>
         public static DetectionProfileConfig CreatePreset(DetectionPresetKind kind)
         {
             switch (kind)
@@ -146,6 +158,10 @@ namespace MelodyRecognitionEngine.Data
             }
         }
 
+        /// <summary>
+        /// Returns a copy of this configuration with all numeric parameters clamped to safe DSP and segmentation bounds,
+        /// rounding <see cref="FrameSize"/> to the nearest power of two in [512, 4096].
+        /// </summary>
         public DetectionProfileConfig Sanitized()
         {
             DetectionProfileConfig c = this;
@@ -181,9 +197,14 @@ namespace MelodyRecognitionEngine.Data
         [SerializeField] private DetectionPresetKind presetKind = DetectionPresetKind.Hum;
         [SerializeField] private DetectionProfileConfig config = DetectionProfileConfig.CreateHumPreset();
 
+        /// <summary>Preset category currently selected on this asset.</summary>
         public DetectionPresetKind PresetKind => presetKind;
+        /// <summary>Sanitized DSP and note-segmentation parameters ready for runtime consumption.</summary>
         public DetectionProfileConfig Config => config.Sanitized();
 
+        /// <summary>
+        /// Overwrites this asset's fields with the built-in defaults for <paramref name="kind"/>.
+        /// </summary>
         public void ApplyPreset(DetectionPresetKind kind)
         {
             presetKind = kind;

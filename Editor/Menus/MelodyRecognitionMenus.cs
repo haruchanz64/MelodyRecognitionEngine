@@ -5,8 +5,15 @@ using UnityEngine;
 
 namespace MelodyRecognitionEngine.Editor.Menus
 {
+    /// <summary>
+    /// Unity Editor menu commands for creating pre-wired MelodyRecognitionEngine scene rigs.
+    /// </summary>
     public static class MelodyRecognitionMenus
     {
+        /// <summary>
+        /// Creates a Hierarchy rig containing <see cref="MelodyRecognitionController"/>, <see cref="ProceduralOcarinaSynth"/>, and a bound child <see cref="MusicalStaffHUD"/>.
+        /// </summary>
+        /// <param name="menuCommand">Context command supplying the optional parent GameObject.</param>
         [MenuItem("GameObject/MelodyRecognitionEngine/Create Melody Recognition Rig", false, 10)]
         public static void CreateMelodyRecognitionRig(MenuCommand menuCommand)
         {

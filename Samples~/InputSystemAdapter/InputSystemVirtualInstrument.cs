@@ -18,13 +18,20 @@ namespace MelodyRecognitionEngine.Samples.InputSystemAdapter
     /// </summary>
     public sealed class InputSystemVirtualInstrument : MonoBehaviour
     {
+        /// <summary>
+        /// Associates a playable MIDI note with an optional Unity Input System action or fallback keyboard key.
+        /// </summary>
         [Serializable]
         public struct NoteBinding
         {
+            /// <summary>Display label for this note binding (e.g. "D4").</summary>
             public string Label;
+            /// <summary>Base MIDI note number before octave and sharp/flat modifiers (clamped to [24, 108]).</summary>
             [Range(24, 108)] public int MidiNote;
 #if ENABLE_INPUT_SYSTEM
+            /// <summary>Optional InputActionReference triggering this note on performed/canceled callbacks.</summary>
             public InputActionReference Action;
+            /// <summary>Fallback keyboard key polled in <c>Update</c> when <see cref="Action"/> is unassigned.</summary>
             public Key FallbackKey;
 #endif
         }
@@ -98,7 +105,9 @@ namespace MelodyRecognitionEngine.Samples.InputSystemAdapter
         private int _octaveShift;
         private int _heldMidi = -1;
 
+        /// <summary>Current octave offset in [-2, +2] applied to every note press.</summary>
         public int OctaveShift => _octaveShift;
+        /// <summary>Active read-only list of note bindings managed by this adapter.</summary>
         public IReadOnlyList<NoteBinding> NoteBindings => noteBindings;
 
         private void Awake()
@@ -170,6 +179,7 @@ namespace MelodyRecognitionEngine.Samples.InputSystemAdapter
         /// <summary>
         /// Replaces the active bindings using an InstrumentAsset's NoteLayout.
         /// </summary>
+        /// <param name="instrument">Instrument asset supplying note labels and MIDI numbers (ignored if null or empty).</param>
         public void LoadFromInstrumentLayout(InstrumentAsset instrument)
         {
             if (instrument == null || instrument.NoteLayout == null || instrument.NoteLayout.Count == 0)
@@ -205,6 +215,7 @@ namespace MelodyRecognitionEngine.Samples.InputSystemAdapter
             }
         }
 
+        /// <summary>Enables and subscribes performed/canceled callbacks for all configured InputActionReferences.</summary>
         private void BindAllActions()
         {
 #if ENABLE_INPUT_SYSTEM
@@ -227,6 +238,7 @@ namespace MelodyRecognitionEngine.Samples.InputSystemAdapter
 #endif
         }
 
+        /// <summary>Unsubscribes all previously bound InputAction performed/canceled delegates.</summary>
         private void UnbindAllActions()
         {
 #if ENABLE_INPUT_SYSTEM
@@ -241,6 +253,7 @@ namespace MelodyRecognitionEngine.Samples.InputSystemAdapter
         }
 
 #if ENABLE_INPUT_SYSTEM
+        /// <summary>Applies <see cref="_octaveShift"/> and held sharp/flat modifier keys to <paramref name="baseMidi"/>, clamped to [24, 108].</summary>
         private int ResolveModifiedMidi(int baseMidi, Keyboard kb)
         {
             int midi = baseMidi + (_octaveShift * 12);
@@ -254,6 +267,7 @@ namespace MelodyRecognitionEngine.Samples.InputSystemAdapter
         }
 #endif
 
+        /// <summary>Optionally switches the controller to discrete mode and presses the resolved MIDI note.</summary>
         private void Press(int midi)
         {
             if (controller == null) return;
@@ -266,6 +280,7 @@ namespace MelodyRecognitionEngine.Samples.InputSystemAdapter
             controller.PressVirtualNote(midi);
         }
 
+        /// <summary>Releases the active virtual note if it matches the currently held MIDI pitch.</summary>
         private void Release(int midi)
         {
             if (controller == null || _heldMidi != midi) return;

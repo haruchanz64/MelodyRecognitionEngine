@@ -77,6 +77,9 @@ namespace MelodyRecognitionEngine.Presentation
             }
         }
 
+        /// <summary>
+        /// Subscribes this HUD to <paramref name="target"/> events, unbinding any previously bound controller first.
+        /// </summary>
         public void BindController(MelodyRecognitionController target)
         {
             if (controller != null && controller != target)
@@ -103,6 +106,9 @@ namespace MelodyRecognitionEngine.Presentation
             RefreshGuidedGhosts();
         }
 
+        /// <summary>
+        /// Unsubscribes this HUD from all events on <paramref name="target"/>.
+        /// </summary>
         public void UnbindController(MelodyRecognitionController target)
         {
             if (target == null) return;
@@ -119,6 +125,10 @@ namespace MelodyRecognitionEngine.Presentation
             }
         }
 
+        /// <summary>
+        /// Procedurally constructs the default ScreenSpaceOverlay uGUI staff panel, 5 treble lines, pitch needle, RMS meter, and modality toggle buttons.
+        /// Safe to call repeatedly; subsequent calls are no-ops.
+        /// </summary>
         public void BuildDefaultLayout()
         {
             if (_built) return;
@@ -219,6 +229,9 @@ namespace MelodyRecognitionEngine.Presentation
             _statusLabel.rectTransform.sizeDelta = new Vector2(360f, 20f);
         }
 
+        /// <summary>
+        /// Rebuilds the translucent ghost note markers representing the active Guided/Learn Mode target song.
+        /// </summary>
         public void RefreshGuidedGhosts()
         {
             ClearGhostMarkers();
@@ -236,6 +249,7 @@ namespace MelodyRecognitionEngine.Presentation
             }
         }
 
+        /// <summary>Updates the mic RMS meter, live pitch needle position, and frequency status label from incoming pitch frames.</summary>
         private void HandlePitchFrame(PitchFrame frame)
         {
             if (_micMeterFill != null)
@@ -262,6 +276,7 @@ namespace MelodyRecognitionEngine.Presentation
             }
         }
 
+        /// <summary>Places a new note marker on the staff, clearing earlier markers once <see cref="maxVisibleNotes"/> is reached.</summary>
         private void HandleNoteDetected(NoteEvent note)
         {
             if (_staffArea == null) return;
@@ -275,6 +290,7 @@ namespace MelodyRecognitionEngine.Presentation
             _noteMarkers.Add(marker);
         }
 
+        /// <summary>Displays the best candidate song and note count in the header banner when no match banner is active.</summary>
         private void HandleMatchProgress(SongMatchProgress progress)
         {
             if (_bannerLabel != null && _bannerTimer <= 0f)
@@ -284,6 +300,7 @@ namespace MelodyRecognitionEngine.Presentation
             }
         }
 
+        /// <summary>Tints active staff markers gold and displays the matched song banner for 2.4 seconds.</summary>
         private void HandleSongMatched(SongMatchResult result)
         {
             for (int i = 0; i < _noteMarkers.Count; i++)
@@ -300,6 +317,7 @@ namespace MelodyRecognitionEngine.Presentation
             }
         }
 
+        /// <summary>Refreshes ghost markers and shows step pass/retry feedback during Guided/Learn Mode.</summary>
         private void HandleGuidedStep(GuidedStepResult step)
         {
             RefreshGuidedGhosts();
@@ -324,6 +342,7 @@ namespace MelodyRecognitionEngine.Presentation
             _modalityLabel.text = $"Mode: {controller.ActiveModality}";
         }
 
+        /// <summary>Destroys all currently displayed player note markers on the staff.</summary>
         private void ClearDetectedMarkers()
         {
             for (int i = 0; i < _noteMarkers.Count; i++)
@@ -333,6 +352,7 @@ namespace MelodyRecognitionEngine.Presentation
             _noteMarkers.Clear();
         }
 
+        /// <summary>Destroys all Guided/Learn Mode ghost note markers on the staff.</summary>
         private void ClearGhostMarkers()
         {
             for (int i = 0; i < _ghostMarkers.Count; i++)
@@ -342,6 +362,7 @@ namespace MelodyRecognitionEngine.Presentation
             _ghostMarkers.Clear();
         }
 
+        /// <summary>Instantiates a labeled note pill positioned horizontally by slot index and vertically by treble staff step.</summary>
         private RectTransform SpawnNoteMarker(int midiNote, int slotIndex, int totalSlots, Color color, bool isGhost)
         {
             RectTransform marker = CreatePanel(isGhost ? $"Ghost_{slotIndex}" : $"Note_{slotIndex}", _staffArea, color);
@@ -366,6 +387,7 @@ namespace MelodyRecognitionEngine.Presentation
             return marker;
         }
 
+        /// <summary>Converts a MIDI note to vertical staff pixel offset centered on B4, octave-wrapping extreme pitches into [-4, 12] diatonic steps.</summary>
         private float MidiToStaffY(int midiNote)
         {
             // Map treble staff steps (E4 = 0 .. F5 = 8, centered on B4 = 4) into vertical pixel offset.
@@ -376,6 +398,7 @@ namespace MelodyRecognitionEngine.Presentation
             return (step - 4) * (_staffLineSpacing * 0.5f);
         }
 
+        /// <summary>Creates a header modality toggle button anchored relative to the top-right corner of the staff panel.</summary>
         private void CreateModeButton(string label, Vector2 anchoredTopRight, UnityEngine.Events.UnityAction onClick)
         {
             RectTransform btnRect = CreatePanel($"Btn_{label}", _rootPanel, new Color(0.22f, 0.27f, 0.38f, 0.95f));
@@ -396,6 +419,7 @@ namespace MelodyRecognitionEngine.Presentation
             txt.rectTransform.offsetMax = Vector2.zero;
         }
 
+        /// <summary>Creates a child uGUI <see cref="Image"/> panel with the specified color.</summary>
         private static RectTransform CreatePanel(string name, Transform parent, Color color)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
@@ -405,6 +429,7 @@ namespace MelodyRecognitionEngine.Presentation
             return go.GetComponent<RectTransform>();
         }
 
+        /// <summary>Creates a child uGUI <see cref="Text"/> label using Unity's built-in LegacyRuntime font.</summary>
         private static Text CreateText(string name, Transform parent, string content, int fontSize, TextAnchor alignment, Color color)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Text));

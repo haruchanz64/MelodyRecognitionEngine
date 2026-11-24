@@ -48,6 +48,7 @@ namespace MelodyRecognitionEngine.Presentation
         private int _fanfareSamplesRemaining;
         private int _fanfareStepSamples;
 
+        /// <summary>Currently active waveform preset or sample playback mode.</summary>
         public InstrumentWaveformPreset ActiveWaveform => waveformPreset;
 
         private void Awake()
@@ -90,6 +91,9 @@ namespace MelodyRecognitionEngine.Presentation
             }
         }
 
+        /// <summary>
+        /// Applies an <see cref="InstrumentTimbreConfig"/> to this synthesizer, clamping all synthesis and sample parameters to safe ranges.
+        /// </summary>
         public void ApplyTimbre(InstrumentTimbreConfig timbre)
         {
             waveformPreset = timbre.Waveform;
@@ -106,11 +110,17 @@ namespace MelodyRecognitionEngine.Presentation
             sampleRootMidiNote = Mathf.Clamp(timbre.SampleRootMidiNote <= 0 ? 69 : timbre.SampleRootMidiNote, 24, 108);
         }
 
+        /// <summary>
+        /// Starts playing a note at the concert frequency corresponding to <paramref name="midiNote"/>.
+        /// </summary>
         public void PlayMidiNote(int midiNote)
         {
             PlayNote(MusicalNote.MidiToFrequency(midiNote));
         }
 
+        /// <summary>
+        /// Starts playing a note at <paramref name="frequencyHz"/> via either the pitch-shifted sample voice or procedural oscillator.
+        /// </summary>
         public void PlayNote(float frequencyHz)
         {
             if (frequencyHz <= 20f) return;
@@ -135,6 +145,9 @@ namespace MelodyRecognitionEngine.Presentation
             }
         }
 
+        /// <summary>
+        /// Releases the currently sustained note (allowing procedural voices to ramp down over release time).
+        /// </summary>
         public void StopNote()
         {
             _noteHeld = false;
@@ -144,6 +157,9 @@ namespace MelodyRecognitionEngine.Presentation
             }
         }
 
+        /// <summary>
+        /// Triggers the built-in 4-note D major arpeggio fanfare (D5, F#5, A5, D6) on the procedural audio thread.
+        /// </summary>
         public void PlayMatchFanfare()
         {
             _fanfareStepIndex = 0;
@@ -160,6 +176,9 @@ namespace MelodyRecognitionEngine.Presentation
             }
         }
 
+        /// <summary>
+        /// Lazily creates a child <see cref="AudioSource"/> and plays <see cref="sampleClip"/> pitch-shifted to <paramref name="targetFrequencyHz"/>.
+        /// </summary>
         private void PlaySampleVoice(float targetFrequencyHz)
         {
             if (_sampleVoiceSource == null)
@@ -180,6 +199,9 @@ namespace MelodyRecognitionEngine.Presentation
             _sampleVoiceSource.Play();
         }
 
+        /// <summary>
+        /// Audio-thread callback synthesizing the active procedural waveform, vibrato, attack/release or pluck envelope, and match fanfare.
+        /// </summary>
         private void OnAudioFilterRead(float[] data, int channels)
         {
             if (data == null || channels <= 0) return;

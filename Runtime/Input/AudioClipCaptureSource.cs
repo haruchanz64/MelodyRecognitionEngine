@@ -18,13 +18,26 @@ namespace MelodyRecognitionEngine.Input
         private int _readCursor;
         private bool _isCapturing;
 
+        /// <inheritdoc/>
         public int SampleRate => _sampleRate;
+        /// <inheritdoc/>
         public bool IsCapturing => _isCapturing;
+        /// <inheritdoc/>
         public string DeviceName => _deviceName;
+        /// <summary>Total number of mono PCM samples held by this source.</summary>
         public int TotalSamples => _monoSamples.Length;
+        /// <summary>Current read cursor offset in samples.</summary>
         public int ReadCursor => _readCursor;
+        /// <summary>True when playback is non-looping and the read cursor has reached the end of the buffer.</summary>
         public bool IsFinished => !_loop && _readCursor >= _monoSamples.Length;
 
+        /// <summary>
+        /// Creates a capture source backed by an in-memory mono PCM array.
+        /// </summary>
+        /// <param name="monoSamples">Mono PCM samples in [-1, 1] (null is treated as an empty buffer).</param>
+        /// <param name="sampleRate">Sample rate in Hz (clamped to at least 8000).</param>
+        /// <param name="label">Display label returned by <see cref="DeviceName"/>.</param>
+        /// <param name="loop">When true, wraps back to sample 0 upon reaching the end of the buffer.</param>
         public AudioClipCaptureSource(float[] monoSamples, int sampleRate = 44100, string label = "SyntheticStream", bool loop = false)
         {
             _monoSamples = monoSamples ?? Array.Empty<float>();
@@ -33,6 +46,12 @@ namespace MelodyRecognitionEngine.Input
             _loop = loop;
         }
 
+        /// <summary>
+        /// Extracts PCM data from a Unity <see cref="AudioClip"/>, downmixing multi-channel clips to mono by averaging channels.
+        /// </summary>
+        /// <param name="clip">Readable Unity audio clip to extract.</param>
+        /// <param name="loop">When true, wraps continuously when read past the end.</param>
+        /// <returns>A new <see cref="AudioClipCaptureSource"/> configured with the clip's frequency and name.</returns>
         public static AudioClipCaptureSource FromAudioClip(AudioClip clip, bool loop = false)
         {
             if (clip == null)
@@ -69,6 +88,9 @@ namespace MelodyRecognitionEngine.Input
             return new AudioClipCaptureSource(mono, clip.frequency, clip.name, loop);
         }
 
+        /// <summary>
+        /// Resets the read cursor to sample 0 and activates streaming if at least one sample is present.
+        /// </summary>
         public bool StartCapture()
         {
             _readCursor = 0;
@@ -76,16 +98,21 @@ namespace MelodyRecognitionEngine.Input
             return _isCapturing;
         }
 
+        /// <inheritdoc/>
         public void StopCapture()
         {
             _isCapturing = false;
         }
 
+        /// <summary>
+        /// Moves the read cursor to <paramref name="sampleIndex"/>, clamped to [0, <see cref="TotalSamples"/>].
+        /// </summary>
         public void Seek(int sampleIndex)
         {
             _readCursor = Mathf.Clamp(sampleIndex, 0, _monoSamples.Length);
         }
 
+        /// <inheritdoc/>
         public int ReadSamples(float[] destination, int maxSamples)
         {
             if (!_isCapturing || destination == null || maxSamples <= 0 || _monoSamples.Length == 0)
@@ -122,6 +149,7 @@ namespace MelodyRecognitionEngine.Input
             return written;
         }
 
+        /// <inheritdoc/>
         public void Dispose()
         {
             _isCapturing = false;

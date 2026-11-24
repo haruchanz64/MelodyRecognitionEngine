@@ -24,9 +24,14 @@ namespace MelodyRecognitionEngine.Data
     [Serializable]
     public struct InstrumentNoteSlot
     {
+        /// <summary>Short UI or key label displayed for this slot (e.g. "D4").</summary>
         public string Label;
+        /// <summary>MIDI note number clamped to [24, 108].</summary>
         [Range(24, 108)] public int MidiNote;
 
+        /// <summary>
+        /// Creates a playable note slot with <paramref name="midiNote"/> clamped to [24, 108].
+        /// </summary>
         public InstrumentNoteSlot(string label, int midiNote)
         {
             Label = label;
@@ -41,22 +46,37 @@ namespace MelodyRecognitionEngine.Data
     [Serializable]
     public struct InstrumentTimbreConfig
     {
+        /// <summary>Oscillator waveform preset or <see cref="InstrumentWaveformPreset.AudioClipSample"/> playback mode.</summary>
         public InstrumentWaveformPreset Waveform;
+        /// <summary>Linear output gain in [0, 1].</summary>
         [Range(0f, 1f)] public float MasterVolume;
+        /// <summary>Relative blend of the 2nd harmonic partial in [0, 0.8].</summary>
         [Range(0f, 0.8f)] public float SecondHarmonicMix;
+        /// <summary>Relative blend of the 3rd harmonic partial in [0, 0.6].</summary>
         [Range(0f, 0.6f)] public float ThirdHarmonicMix;
+        /// <summary>Vibrato LFO frequency in Hz.</summary>
         [Range(0f, 10f)] public float VibratoRateHz;
+        /// <summary>Vibrato pitch modulation depth in cents.</summary>
         [Range(0f, 30f)] public float VibratoDepthCents;
+        /// <summary>Envelope attack time in seconds.</summary>
         [Range(0.003f, 0.2f)] public float AttackSeconds;
+        /// <summary>Envelope release time in seconds after note-off.</summary>
         [Range(0.02f, 1.2f)] public float ReleaseSeconds;
+        /// <summary>When true, notes automatically decay after the attack peak instead of sustaining indefinitely.</summary>
         [Tooltip("If true, note decays automatically after attack (harp/bell pluck style).")]
         public bool AutoDecayPluck;
+        /// <summary>Decay duration in seconds when <see cref="AutoDecayPluck"/> is enabled.</summary>
         [Range(0.08f, 2.5f)] public float PluckDecaySeconds;
 
+        /// <summary>Optional root audio sample pitch-shifted when <see cref="Waveform"/> is <see cref="InstrumentWaveformPreset.AudioClipSample"/>.</summary>
         [Header("Optional AudioClip Sample (Used when Waveform = AudioClipSample)")]
         public AudioClip SampleClip;
+        /// <summary>MIDI note number at which <see cref="SampleClip"/> was recorded (default 69 = A4).</summary>
         [Range(24, 108)] public int SampleRootMidiNote;
 
+        /// <summary>
+        /// Creates a default timbre configuration for the requested procedural <paramref name="preset"/>.
+        /// </summary>
         public static InstrumentTimbreConfig CreatePreset(InstrumentWaveformPreset preset)
         {
             switch (preset)
@@ -176,14 +196,24 @@ namespace MelodyRecognitionEngine.Data
         [Header("Playback Timbre (Procedural Synth or Pitch-Shifted AudioClip)")]
         [SerializeField] private InstrumentTimbreConfig timbre = InstrumentTimbreConfig.CreatePreset(InstrumentWaveformPreset.Ocarina);
 
+        /// <summary>Unique identifier for this instrument.</summary>
         public string InstrumentId => instrumentId;
+        /// <summary>Human-readable instrument display name.</summary>
         public string DisplayName => displayName;
+        /// <summary>Optional dedicated acoustic detection profile; may be null.</summary>
         public DetectionProfileAsset DetectionProfile => detectionProfile;
+        /// <summary>Built-in preset used when <see cref="DetectionProfile"/> is unassigned.</summary>
         public DetectionPresetKind FallbackPreset => fallbackPreset;
+        /// <summary>Optional song library loaded when equipping this instrument with song loading enabled.</summary>
         public SongLibraryAsset OptionalSongLibrary => optionalSongLibrary;
+        /// <summary>Ordered list of virtual note slots exposed for discrete button or keyboard adapters.</summary>
         public IReadOnlyList<InstrumentNoteSlot> NoteLayout => noteLayout;
+        /// <summary>Audio synthesis or sample playback configuration for this instrument.</summary>
         public InstrumentTimbreConfig Timbre => timbre;
 
+        /// <summary>
+        /// Resolves the effective <see cref="DetectionProfileConfig"/> from <see cref="DetectionProfile"/> or <see cref="FallbackPreset"/>.
+        /// </summary>
         public DetectionProfileConfig ResolveProfileConfig()
         {
             return detectionProfile != null
@@ -191,6 +221,15 @@ namespace MelodyRecognitionEngine.Data
                 : DetectionProfileConfig.CreatePreset(fallbackPreset);
         }
 
+        /// <summary>
+        /// Populates this instrument asset programmatically (useful for runtime-created instruments and EditMode tests).
+        /// </summary>
+        /// <param name="id">Unique instrument identifier (defaults to "instrument_custom" if blank).</param>
+        /// <param name="nameDisplay">Display name (defaults to <paramref name="id"/> if blank).</param>
+        /// <param name="profile">Optional acoustic profile override.</param>
+        /// <param name="timbreConfig">Playback timbre configuration.</param>
+        /// <param name="slots">Optional note layout replacing the existing slots when non-null.</param>
+        /// <param name="songLibrary">Optional instrument-specific song library.</param>
         public void Configure(
             string id,
             string nameDisplay,

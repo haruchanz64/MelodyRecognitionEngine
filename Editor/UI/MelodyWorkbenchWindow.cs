@@ -69,6 +69,9 @@ namespace MelodyRecognitionEngine.Editor.UI
         private Slider _simNoiseSlider;
         private Label _simOutputLabel;
 
+        /// <summary>
+        /// Opens or focuses the UI Toolkit Melody Workbench window from the Unity Tools menu.
+        /// </summary>
         [MenuItem("Tools/HaruChanZ64/Audio/MelodyRecognitionEngine/Melody Workbench", false, 120)]
         public static void OpenWindow()
         {
@@ -78,6 +81,9 @@ namespace MelodyRecognitionEngine.Editor.UI
             window.Show();
         }
 
+        /// <summary>
+        /// Opens the Melody Workbench directly on the Song Authoring tab preloaded with <paramref name="songAsset"/>.
+        /// </summary>
         public static void OpenForSong(SongAsset songAsset)
         {
             var window = GetWindow<MelodyWorkbenchWindow>();
@@ -106,6 +112,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             }
         }
 
+        /// <summary>Builds the UI Toolkit root layout, loads the USS stylesheet, and mounts the three workbench panes.</summary>
         private void CreateGUI()
         {
             VisualElement root = rootVisualElement;
@@ -138,6 +145,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             SelectTab(_activeTab);
         }
 
+        /// <summary>Builds the top title banner for the workbench window.</summary>
         private void BuildHeader(VisualElement root)
         {
             var header = new VisualElement();
@@ -158,6 +166,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             root.Add(header);
         }
 
+        /// <summary>Builds the navigation bar switching between Live Mic Tuner, Song Authoring, and Dry-Run Simulator.</summary>
         private void BuildTabBar(VisualElement root)
         {
             var tabs = new VisualElement();
@@ -178,6 +187,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             root.Add(tabs);
         }
 
+        /// <summary>Shows the requested workbench tab pane and updates active tab button styling.</summary>
         private void SelectTab(WorkbenchTab tab)
         {
             _activeTab = tab;
@@ -190,6 +200,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             _tabSimBtn?.EnableInClassList("mre-tab-btn--active", tab == WorkbenchTab.DryRunSimulator);
         }
 
+        /// <summary>Constructs the Live Mic Tuner pane with device picker, profile controls, pitch readout, RMS bar, and note chip strip.</summary>
         private VisualElement BuildLiveTunerPane()
         {
             var container = new VisualElement();
@@ -255,6 +266,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             return container;
         }
 
+        /// <summary>Constructs the Song Authoring pane with notation fields, octave-shifting piano keys, mic capture, and asset saving.</summary>
         private VisualElement BuildSongAuthoringPane()
         {
             var container = new VisualElement();
@@ -334,6 +346,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             return container;
         }
 
+        /// <summary>Constructs the Dry-Run Simulator pane for running offline synthetic or AudioClip streams through the Burst DSP and matcher.</summary>
         private VisualElement BuildSimulatorPane()
         {
             var container = new VisualElement();
@@ -370,6 +383,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             return container;
         }
 
+        /// <summary>Starts or stops live microphone monitoring in the workbench.</summary>
         private void ToggleLiveMic()
         {
             if (_liveMicSource != null && _liveMicSource.IsActive)
@@ -382,6 +396,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             }
         }
 
+        /// <summary>Opens the selected microphone device through <see cref="MicrophoneNoteInputSource"/> and binds live UI callbacks.</summary>
         private void StartLiveMic()
         {
             StopLiveMic();
@@ -406,6 +421,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             }
         }
 
+        /// <summary>Stops and disposes the active workbench microphone session and resets recording button states.</summary>
         private void StopLiveMic()
         {
             _isRecordingAuthorNotes = false;
@@ -423,6 +439,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             if (_tunerNoteLabel != null) _tunerNoteLabel.text = "--";
         }
 
+        /// <summary>Applies the currently selected preset or custom profile asset to the live microphone source.</summary>
         private void ReconfigureLiveMic()
         {
             if (_liveMicSource != null)
@@ -431,6 +448,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             }
         }
 
+        /// <summary>Resolves the effective <see cref="DetectionProfileConfig"/> from the optional asset override or preset enum field.</summary>
         private DetectionProfileConfig ResolveWorkbenchProfileConfig()
         {
             if (_customProfileField?.value is DetectionProfileAsset customAsset)
@@ -442,6 +460,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             return DetectionProfileConfig.CreatePreset(kind);
         }
 
+        /// <summary>Updates the tuner note readout, frequency/cents metrics, and RMS level bar for each incoming pitch frame.</summary>
         private void HandleLivePitchFrame(PitchFrame frame)
         {
             if (_rmsFillBar != null)
@@ -465,6 +484,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             }
         }
 
+        /// <summary>Appends each detected note to the live tuner chip strip and, while authoring, to the notation field.</summary>
         private void HandleLiveNoteDetected(NoteEvent note)
         {
             string name = note.NoteName;
@@ -478,6 +498,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             }
         }
 
+        /// <summary>Rebuilds the horizontal strip of recently detected note chips in the Live Mic Tuner pane.</summary>
         private void RebuildLiveNoteChips()
         {
             if (_liveNoteChips == null) return;
@@ -496,6 +517,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             RebuildLiveNoteChips();
         }
 
+        /// <summary>Toggles live microphone note recording into the Song Authoring notation field, starting the mic if needed.</summary>
         private void ToggleAuthorMicRecord()
         {
             if (_isRecordingAuthorNotes)
@@ -518,12 +540,14 @@ namespace MelodyRecognitionEngine.Editor.UI
             }
         }
 
+        /// <summary>Shifts the on-screen authoring piano octave within [1, 6] and rebuilds key buttons.</summary>
         private void ShiftPianoOctave(int delta)
         {
             _pianoBaseOctave = Mathf.Clamp(_pianoBaseOctave + delta, 1, 6);
             RebuildPianoKeys();
         }
 
+        /// <summary>Populates the authoring piano row with up to 17 chromatic keys starting at C of <see cref="_pianoBaseOctave"/>.</summary>
         private void RebuildPianoKeys()
         {
             if (_pianoRow == null) return;
@@ -551,6 +575,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             }
         }
 
+        /// <summary>Removes the trailing space-delimited token from the Song Authoring notation field.</summary>
         private void RemoveLastNotationNote()
         {
             if (_authorNotationField == null) return;
@@ -562,6 +587,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             UpdateAuthorIntervalsPreview();
         }
 
+        /// <summary>Appends a single note token to the Song Authoring notation field and refreshes the interval preview.</summary>
         private void AppendNotationNote(string noteName)
         {
             if (_authorNotationField == null) return;
@@ -570,6 +596,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             UpdateAuthorIntervalsPreview();
         }
 
+        /// <summary>Loads an existing <see cref="SongAsset"/>'s metadata and notation into the Song Authoring form fields.</summary>
         private void LoadSongAssetIntoAuthoring(SongAsset asset)
         {
             if (asset == null || asset.Definition == null) return;
@@ -583,6 +610,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             UpdateAuthorIntervalsPreview();
         }
 
+        /// <summary>Parses the current notation field and displays root-relative semitone intervals or a validation message.</summary>
         private void UpdateAuthorIntervalsPreview()
         {
             if (_authorIntervalsLabel == null || _authorNotationField == null) return;
@@ -609,6 +637,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             _authorIntervalsLabel.text = sb.ToString();
         }
 
+        /// <summary>Validates the authored song form and either updates the assigned <see cref="SongAsset"/> or prompts to create a new asset.</summary>
         private void SaveAuthoredSongAsset()
         {
             var def = new SongDefinition
@@ -648,6 +677,7 @@ namespace MelodyRecognitionEngine.Editor.UI
             Selection.activeObject = created;
         }
 
+        /// <summary>Runs a synchronous end-to-end Burst DSP, segmentation, and matching dry run against an AudioClip or synthesized melody.</summary>
         private void RunDryRunSimulation()
         {
             var library = _simLibraryField?.value as SongLibraryAsset;

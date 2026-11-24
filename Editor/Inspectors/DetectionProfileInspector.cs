@@ -5,9 +5,15 @@ using UnityEngine;
 
 namespace MelodyRecognitionEngine.Editor.Inspectors
 {
+    /// <summary>
+    /// Custom Inspector for <see cref="DetectionProfileAsset"/> adding quick preset buttons for Hum, Instrument, and Whistle defaults.
+    /// </summary>
     [CustomEditor(typeof(DetectionProfileAsset))]
     public sealed class DetectionProfileInspector : UnityEditor.Editor
     {
+        /// <summary>
+        /// Renders the quick-preset toolbar with Undo support above the default serialized fields.
+        /// </summary>
         public override void OnInspectorGUI()
         {
             var profile = (DetectionProfileAsset)target;

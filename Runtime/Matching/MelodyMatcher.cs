@@ -9,7 +9,7 @@ namespace MelodyRecognitionEngine.Matching
     /// <summary>
     /// Core melody recognition state machine supporting:
     /// - Sliding-window Free Play matching against a SongRepertoire
-    /// - Relative semitone interval matching (mean-centered, transposition- & octave-invariant)
+    /// - Relative semitone interval matching (mean-centered, transposition- and octave-invariant)
     /// - Strict absolute concert pitch matching (per-song or profile-enforced)
     /// - Optional inter-onset rhythm ratio validation
     /// - Stray-note forgiveness and prefix disambiguation window
@@ -42,16 +42,26 @@ namespace MelodyRecognitionEngine.Matching
         private bool _guidedUnlockOnComplete;
         private bool _guidedResetOnMistake;
 
+        /// <summary>Invoked when a song is fully recognized in Free Play or completed in Guided/Learn Mode.</summary>
         public event Action<SongMatchResult> OnSongMatched;
+        /// <summary>Invoked as notes arrive in Free Play whenever at least one recognizable song matches a leading prefix.</summary>
         public event Action<SongMatchProgress> OnMatchProgress;
+        /// <summary>Invoked on every evaluated note during Guided/Learn Mode.</summary>
         public event Action<GuidedStepResult> OnGuidedStep;
+        /// <summary>Invoked whenever the sliding note history is cleared.</summary>
         public event Action OnHistoryCleared;
 
+        /// <summary>Backing song repertoire queried for recognizable candidates.</summary>
         public SongRepertoire Repertoire => _repertoire;
+        /// <summary>Active matcher mode (<see cref="MatcherPlayMode.FreePlay"/> or <see cref="MatcherPlayMode.GuidedLearn"/>).</summary>
         public MatcherPlayMode PlayMode => _playMode;
+        /// <summary>Recent note history retained in the sliding recognition window.</summary>
         public IReadOnlyList<NoteEvent> NoteHistory => _history;
+        /// <summary>Active target song in Guided/Learn Mode, or null in Free Play.</summary>
         public SongDefinition GuidedTargetSong => _guidedSong;
+        /// <summary>Zero-based index of the next expected note in Guided/Learn Mode.</summary>
         public int GuidedStepIndex => _guidedStepIndex;
+        /// <summary>True while holding a completed shorter song match to give a longer prefix-sharing song time to finish.</summary>
         public bool HasPendingPrefixDisambiguation => _hasPendingMatch;
 
         /// <summary>
@@ -64,6 +74,9 @@ namespace MelodyRecognitionEngine.Matching
             set => _minHistoryLength = Mathf.Clamp(value, 8, 512);
         }
 
+        /// <summary>
+        /// Current sliding-window history limit, expanded dynamically to cover the longest registered song plus its stray-note margin.
+        /// </summary>
         public int EffectiveMaxHistoryLength
         {
             get
@@ -85,47 +98,61 @@ namespace MelodyRecognitionEngine.Matching
             }
         }
 
+        /// <summary>Fallback pitch tolerance in cents (clamped to [10, 150]) used when a song's own tolerance is &lt;= 0.</summary>
         public float DefaultPitchToleranceCents
         {
             get => _defaultPitchToleranceCents;
             set => _defaultPitchToleranceCents = Mathf.Clamp(value, 10f, 150f);
         }
 
+        /// <summary>When true, overrides per-song settings and enforces strict concert pitch for all songs.</summary>
         public bool ForceAbsolutePitch
         {
             get => _forceAbsolutePitch;
             set => _forceAbsolutePitch = value;
         }
 
+        /// <summary>Delay window in seconds (clamped to [0, 3]) before committing a shorter song that is a prefix of a longer recognizable song.</summary>
         public float PrefixDisambiguationSeconds
         {
             get => _prefixDisambiguationSeconds;
             set => _prefixDisambiguationSeconds = Mathf.Clamp(value, 0f, 3f);
         }
 
+        /// <summary>Minimum elapsed time in seconds (clamped to [0, 5]) after a match before starting a new history window.</summary>
         public float MatchCooldownSeconds
         {
             get => _matchCooldownSeconds;
             set => _matchCooldownSeconds = Mathf.Clamp(value, 0f, 5f);
         }
 
+        /// <summary>When true, clears the note history buffer immediately after firing a match.</summary>
         public bool ClearHistoryOnMatch
         {
             get => _clearHistoryOnMatch;
             set => _clearHistoryOnMatch = value;
         }
 
+        /// <summary>
+        /// Creates a melody matcher bound to <paramref name="repertoire"/>.
+        /// </summary>
         public MelodyMatcher(SongRepertoire repertoire)
         {
             _repertoire = repertoire ?? throw new ArgumentNullException(nameof(repertoire));
         }
 
+        /// <summary>
+        /// Updates <see cref="DefaultPitchToleranceCents"/> and <see cref="ForceAbsolutePitch"/> from a <see cref="DetectionProfileConfig"/>.
+        /// </summary>
         public void ApplyProfile(DetectionProfileConfig profile)
         {
             _defaultPitchToleranceCents = profile.DefaultPitchToleranceCents;
             _forceAbsolutePitch = profile.ForceStrictAbsolutePitch;
         }
 
+        /// <summary>
+        /// Switches the matcher to <see cref="MatcherPlayMode.FreePlay"/>, clears guided state, and resets the note history.
+        /// </summary>
         public void EnterFreePlayMode()
         {
             _playMode = MatcherPlayMode.FreePlay;
@@ -134,6 +161,12 @@ namespace MelodyRecognitionEngine.Matching
             ClearHistory();
         }
 
+        /// <summary>
+        /// Switches the matcher to <see cref="MatcherPlayMode.GuidedLearn"/> for step-by-step validation of <paramref name="targetSong"/>.
+        /// </summary>
+        /// <param name="targetSong">Valid song definition (cloned internally).</param>
+        /// <param name="unlockOnComplete">When true, unlocks the song in <see cref="Repertoire"/> upon completing the final note.</param>
+        /// <param name="resetOnMistake">When true, a wrong note resets progress to step 0; when false, stays on the current step.</param>
         public void EnterGuidedLearnMode(SongDefinition targetSong, bool unlockOnComplete = true, bool resetOnMistake = false)
         {
             if (targetSong == null || !targetSong.IsValid)
@@ -150,6 +183,9 @@ namespace MelodyRecognitionEngine.Matching
             ClearHistory();
         }
 
+        /// <summary>
+        /// Clears buffered note history, cancels any pending prefix disambiguation match, and invokes <see cref="OnHistoryCleared"/>.
+        /// </summary>
         public void ClearHistory()
         {
             _history.Clear();
@@ -157,6 +193,9 @@ namespace MelodyRecognitionEngine.Matching
             OnHistoryCleared?.Invoke();
         }
 
+        /// <summary>
+        /// Handles a phrase silence timeout by committing any pending shorter prefix match or clearing Free Play history.
+        /// </summary>
         public void NotifySilenceTimeout()
         {
             if (_hasPendingMatch)
@@ -182,6 +221,9 @@ namespace MelodyRecognitionEngine.Matching
             }
         }
 
+        /// <summary>
+        /// Ingests a newly detected <see cref="NoteEvent"/> into either Guided/Learn validation or the Free Play sliding window.
+        /// </summary>
         public void FeedNote(NoteEvent note)
         {
             if (_playMode == MatcherPlayMode.GuidedLearn)
@@ -205,6 +247,9 @@ namespace MelodyRecognitionEngine.Matching
             EvaluateFreePlay(note.StartTimeSeconds);
         }
 
+        /// <summary>
+        /// Evaluates all recognizable repertoire songs against the current sliding note history, resolving full matches, prefix disambiguation, and partial progress.
+        /// </summary>
         private void EvaluateFreePlay(double now)
         {
             IReadOnlyList<SongDefinition> candidates = _repertoire.GetRecognizableSongs();
@@ -343,6 +388,7 @@ namespace MelodyRecognitionEngine.Matching
             }
         }
 
+        /// <summary>Promotes a buffered prefix-disambiguation match and fires <see cref="OnSongMatched"/>.</summary>
         private void CommitPendingMatch()
         {
             if (!_hasPendingMatch) return;
@@ -351,6 +397,7 @@ namespace MelodyRecognitionEngine.Matching
             FireMatch(result, result.MatchedAtSeconds);
         }
 
+        /// <summary>Clears any pending prefix-disambiguation candidate without emitting a match.</summary>
         private void CancelPendingMatch()
         {
             _hasPendingMatch = false;
@@ -358,6 +405,7 @@ namespace MelodyRecognitionEngine.Matching
             _disambiguationSupersetIds.Clear();
         }
 
+        /// <summary>Records match cooldown timestamp, optionally clears history, and invokes <see cref="OnSongMatched"/>.</summary>
         private void FireMatch(SongMatchResult result, double now)
         {
             _lastMatchTime = now;
@@ -369,6 +417,9 @@ namespace MelodyRecognitionEngine.Matching
             OnSongMatched?.Invoke(result);
         }
 
+        /// <summary>
+        /// Tests whether the trailing notes in <see cref="_history"/> match <paramref name="song"/> exactly or with up to <see cref="SongDefinition.MaxStrayNotes"/> interior skips.
+        /// </summary>
         private bool TryMatchFullSong(SongDefinition song, double now, out SongMatchResult result)
         {
             result = default;
@@ -459,6 +510,9 @@ namespace MelodyRecognitionEngine.Matching
             return false;
         }
 
+        /// <summary>
+        /// Evaluates pitch residuals (using mean-centered transposition in relative mode) and optional inter-onset rhythm for a candidate history window.
+        /// </summary>
         private bool EvaluateSubsequence(
             SongDefinition song,
             int windowStart,
@@ -527,6 +581,9 @@ namespace MelodyRecognitionEngine.Matching
             return true;
         }
 
+        /// <summary>
+        /// Verifies that normalized inter-onset time intervals match the song's <see cref="SongNoteEntry.RelativeDuration"/> ratios within <see cref="SongDefinition.RhythmTolerance"/>.
+        /// </summary>
         private bool ValidateInterOnsetRhythm(SongDefinition song, int windowStart, int skipIndexA, int skipIndexB)
         {
             int intervalCount = song.NoteCount - 1;
@@ -575,6 +632,9 @@ namespace MelodyRecognitionEngine.Matching
             return true;
         }
 
+        /// <summary>
+        /// Finds the longest proper prefix of <paramref name="song"/> that matches the trailing notes of <see cref="_history"/>.
+        /// </summary>
         private int ComputeBestPartialPrefixMatch(SongDefinition song, out float confidence)
         {
             confidence = 0f;
@@ -591,6 +651,9 @@ namespace MelodyRecognitionEngine.Matching
             return 0;
         }
 
+        /// <summary>
+        /// Tests whether the last <paramref name="prefixLen"/> history notes match the first <paramref name="prefixLen"/> notes of <paramref name="song"/>.
+        /// </summary>
         private bool MatchesPrefixOfLength(SongDefinition song, int prefixLen, out float confidence)
         {
             confidence = 0f;
@@ -640,6 +703,9 @@ namespace MelodyRecognitionEngine.Matching
             return true;
         }
 
+        /// <summary>
+        /// Validates a single note against the active step of <see cref="_guidedSong"/>, anchoring relative pitch on step 0 and unlocking on completion.
+        /// </summary>
         private void ProcessGuidedNote(NoteEvent note)
         {
             if (_guidedSong == null || !_guidedSong.IsValid) return;
@@ -714,11 +780,13 @@ namespace MelodyRecognitionEngine.Matching
             }
         }
 
+        /// <summary>Returns <see cref="NoteEvent.ExactMidiFloat"/> when populated, otherwise falls back to integer <see cref="NoteEvent.MidiNote"/>.</summary>
         private static float GetEffectiveMidi(NoteEvent note)
         {
             return note.ExactMidiFloat > 0f ? note.ExactMidiFloat : note.MidiNote;
         }
 
+        /// <summary>Computes a normalized match confidence score in [0, 1] from average pitch error and stray-note count.</summary>
         private static float ComputeConfidence(float avgErrorCents, float toleranceCents, int strayCount)
         {
             float pitchScore = 1f - Mathf.Clamp01(avgErrorCents / Mathf.Max(1f, toleranceCents * 1.4f));
@@ -726,6 +794,7 @@ namespace MelodyRecognitionEngine.Matching
             return Mathf.Clamp01(pitchScore - strayPenalty);
         }
 
+        /// <summary>Assembles a populated <see cref="SongMatchResult"/> payload from match metrics.</summary>
         private static SongMatchResult BuildMatchResult(
             SongDefinition song,
             float confidence,

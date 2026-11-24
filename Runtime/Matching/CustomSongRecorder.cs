@@ -19,16 +19,31 @@ namespace MelodyRecognitionEngine.Matching
         private string _targetSongId = "custom_song";
         private string _targetDisplayName = "Custom Song";
 
+        /// <summary>Invoked each time a note is appended during recording, passing the note and updated total count.</summary>
         public event Action<NoteEvent, int> OnNoteCaptured;
+        /// <summary>Invoked when recording finishes and produces a validated <see cref="SongDefinition"/>.</summary>
         public event Action<SongDefinition> OnRecordingCompleted;
+        /// <summary>Invoked when <see cref="FinishRecording"/> rejects a recording, passing a human-readable reason.</summary>
         public event Action<string> OnRecordingFailed;
 
+        /// <summary>True while actively capturing incoming <see cref="NoteEvent"/> instances.</summary>
         public bool IsRecording => _isRecording;
+        /// <summary>Number of notes captured so far in the current recording session.</summary>
         public int CapturedCount => _capturedNotes.Count;
+        /// <summary>Minimum number of notes required to finalize a custom song.</summary>
         public int MinNotes => _minNotes;
+        /// <summary>Maximum number of notes captured before <see cref="FeedNote"/> automatically finishes recording.</summary>
         public int MaxNotes => _maxNotes;
+        /// <summary>Read-only view of the notes captured so far.</summary>
         public IReadOnlyList<NoteEvent> CapturedNotes => _capturedNotes;
 
+        /// <summary>
+        /// Starts a new custom song recording session and clears any previously captured notes.
+        /// </summary>
+        /// <param name="songId">Song identifier assigned to the finished <see cref="SongDefinition"/>.</param>
+        /// <param name="displayName">Human-readable title assigned to the finished song.</param>
+        /// <param name="minNotes">Minimum required note count (clamped to at least 2).</param>
+        /// <param name="maxNotes">Maximum note count before auto-finishing (clamped to at least <paramref name="minNotes"/>).</param>
         public void BeginRecording(string songId = "custom_song", string displayName = "Custom Song", int minNotes = 4, int maxNotes = 8)
         {
             _targetSongId = string.IsNullOrWhiteSpace(songId) ? "custom_song" : songId;
@@ -39,12 +54,18 @@ namespace MelodyRecognitionEngine.Matching
             _isRecording = true;
         }
 
+        /// <summary>
+        /// Aborts the current recording session and discards all captured notes without emitting failure events.
+        /// </summary>
         public void CancelRecording()
         {
             _isRecording = false;
             _capturedNotes.Clear();
         }
 
+        /// <summary>
+        /// Appends a live note while recording and automatically calls <see cref="FinishRecording"/> once <see cref="MaxNotes"/> is reached.
+        /// </summary>
         public void FeedNote(NoteEvent note)
         {
             if (!_isRecording) return;
@@ -62,6 +83,11 @@ namespace MelodyRecognitionEngine.Matching
         /// Stops recording and builds a SongDefinition if at least MinNotes were captured
         /// and the phrase isn't strictly monotone (unless allowMonotone is true).
         /// </summary>
+        /// <param name="song">Receives the constructed custom <see cref="SongDefinition"/> on success, or null on failure.</param>
+        /// <param name="error">Receives a validation error message on failure, or null on success.</param>
+        /// <param name="allowMonotone">When false, requires at least two distinct MIDI pitches.</param>
+        /// <param name="conflictCheckRepertoire">Optional repertoire checked to reject exact relative-interval duplicates of other songs.</param>
+        /// <returns>True if validation succeeded and <paramref name="song"/> was produced.</returns>
         public bool FinishRecording(out SongDefinition song, out string error, bool allowMonotone = false, SongRepertoire conflictCheckRepertoire = null)
         {
             song = null;
@@ -157,6 +183,9 @@ namespace MelodyRecognitionEngine.Matching
             return true;
         }
 
+        /// <summary>
+        /// Returns true if any other song in <paramref name="repertoire"/> has the same length and identical relative semitone intervals.
+        /// </summary>
         private static bool HasExactIntervalConflict(SongDefinition candidate, SongRepertoire repertoire)
         {
             int[] candIntervals = candidate.GetRelativeIntervals();

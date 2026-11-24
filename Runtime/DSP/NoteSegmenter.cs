@@ -44,26 +44,42 @@ namespace MelodyRecognitionEngine.DSP
         private bool _silenceTimeoutFired;
         private double _lastVoicedTime;
 
+        /// <summary>Invoked once a candidate pitch stays stable for at least <see cref="DetectionProfileConfig.MinNoteDurationSeconds"/> or re-articulates.</summary>
         public event Action<NoteEvent> OnNoteStarted;
+        /// <summary>Invoked on voiced frames while the current note stays within the pitch hysteresis band.</summary>
         public event Action<NoteEvent> OnNoteUpdated;
+        /// <summary>Invoked when the active note closes due to silence, pitch transition, re-articulation, or <see cref="Flush"/>.</summary>
         public event Action<NoteEvent> OnNoteEnded;
+        /// <summary>Invoked once after continuous unvoiced audio exceeds <see cref="DetectionProfileConfig.PhraseSilenceTimeoutSeconds"/>.</summary>
         public event Action OnSilenceTimeout;
 
+        /// <summary>True while a confirmed note is currently sustained.</summary>
         public bool HasActiveNote => _hasActiveNote;
+        /// <summary>Snapshot of the currently active note (valid when <see cref="HasActiveNote"/> is true).</summary>
         public NoteEvent ActiveNote => _activeNote;
+        /// <summary>Active sanitized segmentation parameters.</summary>
         public DetectionProfileConfig Config => _config;
 
+        /// <summary>
+        /// Creates a note segmenter configured with sanitized thresholds from <paramref name="config"/>.
+        /// </summary>
         public NoteSegmenter(DetectionProfileConfig config)
         {
             _config = config.Sanitized();
         }
 
+        /// <summary>
+        /// Applies a new <see cref="DetectionProfileConfig"/> and resets all smoothing and active-note state.
+        /// </summary>
         public void Reconfigure(DetectionProfileConfig config)
         {
             _config = config.Sanitized();
             Reset();
         }
 
+        /// <summary>
+        /// Clears rolling median history, candidate tracking, active note state, and silence timers.
+        /// </summary>
         public void Reset()
         {
             _medianCount = 0;
@@ -83,6 +99,9 @@ namespace MelodyRecognitionEngine.DSP
             _lastVoicedTime = 0.0;
         }
 
+        /// <summary>
+        /// Ingests the next chronological <see cref="PitchFrame"/> and emits note lifecycle or silence-timeout events as appropriate.
+        /// </summary>
         public void Feed(PitchFrame frame)
         {
             double now = frame.TimestampSeconds;
@@ -205,6 +224,9 @@ namespace MelodyRecognitionEngine.DSP
             _medianCount = 0;
         }
 
+        /// <summary>
+        /// Advances unvoiced gap timers to cancel stray candidates, release the active note, or fire <see cref="OnSilenceTimeout"/>.
+        /// </summary>
         private void HandleUnvoicedFrame(double now)
         {
             if (!_isInUnvoicedGap)
@@ -236,6 +258,9 @@ namespace MelodyRecognitionEngine.DSP
             }
         }
 
+        /// <summary>
+        /// Detects an RMS dip-then-rise envelope signature while pitch stays constant to split repeated same-pitch notes.
+        /// </summary>
         private bool CheckSamePitchRearticulation(float currentRms, double now)
         {
             if (currentRms > _activeNotePeakRms)
@@ -273,6 +298,9 @@ namespace MelodyRecognitionEngine.DSP
             return false;
         }
 
+        /// <summary>
+        /// Initializes active note tracking state and invokes <see cref="OnNoteStarted"/>.
+        /// </summary>
         private void EmitNewNote(int midiNote, float exactMidiFloat, float clarity, float rms, double startTime, bool isRearticulated)
         {
             _activeNote = new NoteEvent
@@ -300,6 +328,9 @@ namespace MelodyRecognitionEngine.DSP
             OnNoteStarted?.Invoke(_activeNote);
         }
 
+        /// <summary>
+        /// Finalizes the active note's duration, clears active state, and invokes <see cref="OnNoteEnded"/>.
+        /// </summary>
         private void CloseActiveNote(double endTime)
         {
             if (!_hasActiveNote) return;
@@ -312,6 +343,9 @@ namespace MelodyRecognitionEngine.DSP
             OnNoteEnded?.Invoke(completed);
         }
 
+        /// <summary>
+        /// Appends <paramref name="value"/> to the circular median window and returns the median without heap allocations.
+        /// </summary>
         private float PushAndComputeMedian(float value)
         {
             int window = Mathf.Clamp(_config.MedianWindowFrames, 1, _medianHistory.Length);
